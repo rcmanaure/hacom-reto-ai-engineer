@@ -50,7 +50,7 @@ with Diagram("Arquitectura física", filename="fisica", outformat="png",
             vpce = Endpoint("VPC endpoints\nBedrock, S3, Secrets")
 
         with Cluster("Servicios gestionados"):
-            bedrock = Bedrock("Bedrock: Claude\n+ Guardrails\n+ Knowledge Bases")
+            bedrock = Bedrock("Bedrock: modelo fundacional\n+ Guardrails\n+ Knowledge Bases")
             s3 = S3("S3: documentos,\nlogs de invocación\n(Object Lock)")
             appcfg = SystemsManagerAppConfig("AppConfig\nreglas SLA/ruteo")
 
