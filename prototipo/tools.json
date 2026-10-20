@@ -1,0 +1,154 @@
+{
+  "_comentario": "Contratos de las tools que expone el servidor MCP al agente de investigación. Todas son de solo lectura (ADR 0003). Cada resultado lleva un evidence_id que el resumen debe citar; el validador comprueba que la cita exista en la traza de la ejecución.",
+  "tools": [
+    {
+      "name": "get_device_status",
+      "description": "Estado operacional actual de un equipo de red y sus alarmas activas.",
+      "readOnly": true,
+      "input_schema": {
+        "type": "object",
+        "required": ["equipo_id"],
+        "properties": { "equipo_id": { "type": "string", "pattern": "^[A-Z0-9-]{3,40}$" } },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["evidence_id", "equipo_id", "estado", "alarmas_activas", "consultado_en"],
+        "properties": {
+          "evidence_id": { "type": "string" },
+          "equipo_id": { "type": "string" },
+          "tipo_equipo": { "type": "string" },
+          "estado": { "enum": ["operativo", "degradado", "caido", "desconocido"] },
+          "alarmas_activas": {
+            "type": "array", "maxItems": 20,
+            "items": { "type": "object", "properties": { "codigo": { "type": "string" }, "severidad": { "enum": ["critical", "major", "minor", "warning"] }, "desde": { "type": "string", "format": "date-time" } } }
+          },
+          "consultado_en": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    {
+      "name": "get_topology_neighbors",
+      "description": "Equipos adyacentes (upstream y downstream) a un equipo, con su estado; sirve para distinguir causa de síntoma.",
+      "readOnly": true,
+      "input_schema": {
+        "type": "object",
+        "required": ["equipo_id"],
+        "properties": {
+          "equipo_id": { "type": "string", "pattern": "^[A-Z0-9-]{3,40}$" },
+          "profundidad": { "type": "integer", "minimum": 1, "maximum": 2, "default": 1 }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["evidence_id", "vecinos"],
+        "properties": {
+          "evidence_id": { "type": "string" },
+          "vecinos": {
+            "type": "array", "maxItems": 50,
+            "items": { "type": "object", "properties": { "equipo_id": { "type": "string" }, "relacion": { "enum": ["upstream", "downstream"] }, "estado": { "type": "string" } } }
+          }
+        }
+      }
+    },
+    {
+      "name": "get_service_context",
+      "description": "Servicios, clientes (seudonimizados) y ubicación asociados a un equipo o servicio.",
+      "readOnly": true,
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "equipo_id": { "type": "string", "pattern": "^[A-Z0-9-]{3,40}$" },
+          "servicio_id": { "type": "string", "pattern": "^[A-Z0-9-]{3,40}$" }
+        },
+        "minProperties": 1,
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["evidence_id", "servicios"],
+        "properties": {
+          "evidence_id": { "type": "string" },
+          "ubicacion": { "type": "string" },
+          "servicios": {
+            "type": "array", "maxItems": 50,
+            "items": { "type": "object", "properties": { "servicio_id": { "type": "string" }, "cliente_ref": { "type": "string", "description": "Token seudónimo, p. ej. CLIENTE_3; nunca el nombre real" }, "tier": { "enum": ["oro", "plata", "bronce"] }, "clientes_afectados": { "type": "integer" } } }
+          }
+        }
+      }
+    },
+    {
+      "name": "get_incident_timeline",
+      "description": "Línea de tiempo de Alertas y Tickets correlacionados de la Incidencia en curso (Memoria de la Incidencia).",
+      "readOnly": true,
+      "input_schema": {
+        "type": "object",
+        "required": ["incidencia_id"],
+        "properties": { "incidencia_id": { "type": "string" } },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["evidence_id", "eventos"],
+        "properties": {
+          "evidence_id": { "type": "string" },
+          "eventos": {
+            "type": "array", "maxItems": 100,
+            "items": { "type": "object", "properties": { "ts": { "type": "string", "format": "date-time" }, "tipo": { "enum": ["alerta", "ticket", "nota"] }, "resumen": { "type": "string" } } }
+          }
+        }
+      }
+    },
+    {
+      "name": "search_procedures",
+      "description": "Búsqueda semántica en procedimientos técnicos versionados (RAG).",
+      "readOnly": true,
+      "input_schema": {
+        "type": "object",
+        "required": ["consulta"],
+        "properties": {
+          "consulta": { "type": "string", "maxLength": 500 },
+          "tipo_equipo": { "type": "string" },
+          "max_resultados": { "type": "integer", "minimum": 1, "maximum": 5, "default": 3 }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["resultados"],
+        "properties": {
+          "resultados": {
+            "type": "array", "maxItems": 5,
+            "items": { "type": "object", "required": ["evidence_id", "documento", "version", "fragmento"], "properties": { "evidence_id": { "type": "string" }, "documento": { "type": "string" }, "version": { "type": "string" }, "fragmento": { "type": "string" }, "score": { "type": "number" } } }
+          }
+        }
+      }
+    },
+    {
+      "name": "search_similar_incidents",
+      "description": "Búsqueda de Incidencias cerradas y revisadas similares, con su causa raíz confirmada (Memoria institucional).",
+      "readOnly": true,
+      "input_schema": {
+        "type": "object",
+        "required": ["consulta"],
+        "properties": {
+          "consulta": { "type": "string", "maxLength": 500 },
+          "tipo_equipo": { "type": "string" },
+          "max_resultados": { "type": "integer", "minimum": 1, "maximum": 5, "default": 3 }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["resultados"],
+        "properties": {
+          "resultados": {
+            "type": "array", "maxItems": 5,
+            "items": { "type": "object", "required": ["evidence_id", "incidencia_id", "causa_raiz", "equipo_resolutor"], "properties": { "evidence_id": { "type": "string" }, "incidencia_id": { "type": "string" }, "causa_raiz": { "type": "string" }, "resolucion": { "type": "string" }, "equipo_resolutor": { "type": "string" }, "score": { "type": "number" } } }
+          }
+        }
+      }
+    }
+  ]
+}

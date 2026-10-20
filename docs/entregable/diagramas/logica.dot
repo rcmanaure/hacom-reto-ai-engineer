@@ -1,0 +1,81 @@
+// Diagrama lógico. Render: dot -Tpng -Gdpi=150 logica.dot -o logica.png
+digraph logica {
+  rankdir=TB; newrank=true; compound=true; nodesep=0.35; ranksep=0.55;
+  fontname="Segoe UI"; fontsize=12;
+  node [shape=box, style="rounded,filled", fontname="Segoe UI", fontsize=10, fillcolor="#e8e8e8", color="#555555"];
+  edge [fontname="Segoe UI", fontsize=9, color="#444444"];
+
+  subgraph cluster_src {
+    label="Sistemas del operador (on-prem)"; style="rounded,dashed"; color="#b45309";
+    MON [label="Monitoreo"];
+    TCK [label="Plataforma de tickets"];
+    CAT [label="Catálogo de clientes\ny servicios"];
+    RDB [label="BD relacional\ninventario y topología", shape=cylinder, fillcolor="#dbeafe", color="#1d4ed8"];
+    DOCS [label="Repos de documentación\ntécnica"];
+  }
+
+  Q   [label="Ingesta\ncola de eventos + DLQ"];
+  CON [label="Conectores de lectura\nAPIs / SQL · cuentas read-only"];
+
+  subgraph cluster_wf {
+    label="Workflow de Incidencia · orquestación determinista, estados persistidos"; style="rounded"; color="#555555";
+    A1 [label="1 Recibir"];
+    A2 [label="2 Validar,\ndeduplicar,\ncorrelacionar"];
+    A3 [label="3 Enriquecer\ncontexto"];
+    A4 [label="4 Clasificar y\npriorizar\n(reglas + SLA)"];
+    A5 [label="5 Investigar", fillcolor="#e6dcf5", color="#6b3fa0"];
+    A6 [label="6 Ruteo\n(tabla de reglas)"];
+    A7 [label="7 Resumen\ntécnico", fillcolor="#e6dcf5", color="#6b3fa0"];
+    V  [label="Validación\ndeterminista\nesquema · citas ·\npolíticas", fillcolor="#dcfce7", color="#15803d"];
+    A8 [label="8 Actualizar\nTicket maestro,\nderivar / escalar"];
+    A1 -> A2 -> A3 -> A4 -> A5 -> A6 -> A7 -> V -> A8;
+  }
+
+  subgraph cluster_ia {
+    label="IA generativa · detrás de enmascarado PII + Guardrails"; style="rounded"; color="#6b3fa0";
+    node [fillcolor="#e6dcf5", color="#6b3fa0"];
+    LLME [label="LLM extracción\n(workflow IA)"];
+    AG   [label="Agente de investigación\nloop acotado: ≤8 tools, ≤90 s"];
+    LLMR [label="LLM resumen\n(workflow IA)"];
+  }
+
+  MCP [label="Servidor MCP · solo lectura\nget_device_status · get_topology_neighbors · get_service_context\nget_incident_timeline · search_procedures · search_similar_incidents", fillcolor="#dcfce7", color="#15803d"];
+
+  subgraph cluster_data {
+    label="Datos de la solución"; style="rounded"; color="#1d4ed8";
+    node [shape=cylinder, fillcolor="#dbeafe", color="#1d4ed8"];
+    ST  [label="Memoria de la Incidencia\nestado + auditoría"];
+    VDB [label="Índice vectorial\nprocedimientos + histórico"];
+  }
+
+  OPS [label="Operador NOC", shape=ellipse, fillcolor="#fde7c8", color="#b45309"];
+  RES [label="Equipo resolutor", shape=ellipse, fillcolor="#fde7c8", color="#b45309"];
+
+  { rank=same; MON; TCK; CAT; RDB; DOCS; }
+  { rank=same; Q; CON; }
+  { rank=same; A1; A2; A3; A4; A5; A6; A7; V; A8; }
+  { rank=same; LLME; AG; LLMR; OPS; RES; }
+  { rank=same; ST; VDB; }
+
+  MON -> Q [label="alertas"];
+  TCK -> Q [label="tickets"];
+  Q -> A1;
+  A3 -> CON [label="consulta"];
+  CON -> RDB [constraint=false];
+  CON -> CAT [constraint=false];
+  CON -> MON [constraint=false];
+  A4 -> LLME [style=dashed, label="texto libre"];
+  A5 -> AG   [style=dashed, label="contexto"];
+  A7 -> LLMR [style=dashed, label="hechos + evidencias"];
+  AG -> MCP  [label="tool calls"];
+  MCP -> CON [constraint=false, label="lectura"];
+  MCP -> ST;
+  MCP -> VDB;
+  A2 -> ST [style=dotted, dir=both, label="estado"];
+  DOCS -> VDB [style=dotted, label="ingesta versionada", constraint=false];
+  ST -> VDB [style=dotted, label="cerradas y revisadas"];
+  A8 -> TCK [penwidth=2.2, color="#b91c1c", fontcolor="#b91c1c", label="única ruta\nde escritura", constraint=false];
+  A8 -> OPS [label="escalamiento"];
+  OPS -> A8 [label="aprueba / corrige"];
+  TCK -> RES [style=dotted, label="asignación", constraint=false];
+}

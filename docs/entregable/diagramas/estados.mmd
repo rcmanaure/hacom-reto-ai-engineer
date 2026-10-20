@@ -1,0 +1,24 @@
+stateDiagram-v2
+  direction LR
+  [*] --> Recibida
+  Recibida --> Validada: campos obligatorios OK
+  Recibida --> EsperaOperador: E1 campos faltantes
+  Validada --> Adjuntada: correlaciona con Incidencia abierta
+  Adjuntada --> [*]
+  Validada --> Enriquecida: nueva Incidencia
+  Enriquecida --> Priorizada: reglas de prioridad y SLA
+  Priorizada --> Investigada: agente dentro de límites
+  Priorizada --> InvestigacionIncompleta: E5 límite de pasos/tiempo
+  Priorizada --> SinAnalisisIA: E7 fallo Bedrock (degradación)
+  Investigada --> Resumida
+  InvestigacionIncompleta --> Resumida
+  Resumida --> SalidaValidada: esquema + citas OK
+  Resumida --> EsperaOperador: E2 hipótesis sin evidencia
+  SalidaValidada --> Derivada: ruteo unívoco y sin E3/E4/E6
+  SalidaValidada --> EsperaOperador: E3 ruteo ambiguo, E4 P1, E6 requiere autorización
+  SinAnalisisIA --> Derivada: ruteo por reglas
+  SinAnalisisIA --> EsperaOperador: ruteo ambiguo
+  EsperaOperador --> Derivada: Operador NOC aprueba o corrige
+  EsperaOperador --> Escalada: timeout de aprobación según SLA
+  Derivada --> [*]: Ticket maestro actualizado
+  Escalada --> [*]: supervisor de turno notificado
