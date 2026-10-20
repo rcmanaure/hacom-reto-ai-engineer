@@ -23,11 +23,12 @@ try {
         $header.Range.ParagraphFormat.KeepWithNext = -1       # no dejar el encabezado solo al pie
     }
 
-    # Diagramas apaisados (lógico, estados) en su propia página horizontal.
+    # Diagramas apaisados (lógico) en una página horizontal y muy altos (estados) en una página propia.
     # De atrás hacia adelante para no mover las posiciones de las imágenes anteriores.
     for ($i = $doc.InlineShapes.Count; $i -ge 1; $i--) {
         $shape = $doc.InlineShapes.Item($i)
-        if ($shape.Width / $shape.Height -lt 1.4) { continue }
+        $aspecto = $shape.Width / $shape.Height
+        if ($aspecto -ge 0.6 -and $aspecto -lt 1.4) { continue }
         $img = $shape.Range.Paragraphs.Item(1).Range
         $caption = $img.Next(4, 1)                            # wdParagraph: la leyenda de la figura
         $start = $img.Start
@@ -35,7 +36,7 @@ try {
         if ($prev.ParagraphFormat.OutlineLevel -lt 10) { $start = $prev.Start }   # el título viaja con su diagrama
         $doc.Range($caption.End, $caption.End).InsertBreak(2) # wdSectionBreakNextPage
         $doc.Range($start, $start).InsertBreak(2)
-        $shape.Range.Sections.Item(1).PageSetup.Orientation = 1   # wdOrientLandscape
+        if ($aspecto -ge 1.4) { $shape.Range.Sections.Item(1).PageSetup.Orientation = 1 }   # wdOrientLandscape
     }
 
     foreach ($s in $doc.Sections) {
@@ -45,8 +46,13 @@ try {
 
     foreach ($shape in $doc.InlineShapes) {
         $ps = $shape.Range.Sections.Item(1).PageSetup
+        $reserva = 90                                          # lugar para título y leyenda
+        if ($shape.Width / $shape.Height -lt 0.6) {            # página propia: márgenes mínimos y solo la leyenda
+            $ps.TopMargin = 30; $ps.BottomMargin = 30; $ps.LeftMargin = 30; $ps.RightMargin = 30
+            $reserva = 35
+        }
         $maxW = $ps.PageWidth - $ps.LeftMargin - $ps.RightMargin
-        $maxH = $ps.PageHeight - $ps.TopMargin - $ps.BottomMargin - 90   # deja lugar para título y leyenda
+        $maxH = $ps.PageHeight - $ps.TopMargin - $ps.BottomMargin - $reserva
         $shape.LockAspectRatio = -1
         $factor = [Math]::Min($maxW / $shape.Width, $maxH / $shape.Height)   # agranda o achica hasta llenar el espacio
         $shape.Width = $shape.Width * $factor

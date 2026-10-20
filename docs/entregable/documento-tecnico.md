@@ -117,7 +117,7 @@ No hay memoria que el agente escriba libremente: eso sería un vector de envenen
 
 ## 4.3 Estados, fallos y escalamiento del workflow
 
-![Estados del workflow](diagramas/estados.png)
+El diagrama de estados completo está en la página siguiente. Ante cada fallo, el workflow se comporta así:
 
 | Fallo | Comportamiento |
 |---|---|
@@ -128,6 +128,8 @@ No hay memoria que el agente escriba libremente: eso sería un vector de envenen
 | Alertas simultáneas del mismo equipo | La correlación toma un bloqueo por equipo en Aurora (`pg_advisory_xact_lock`), así que dos ejecuciones concurrentes no crean Incidencias duplicadas. Al adjuntar, se recalcula la prioridad de la Incidencia existente. |
 | Operador NOC no responde | Timeout ligado al SLA de la prioridad. Al vencer, escala al supervisor de turno. |
 | Mensaje malformado | DLQ, más una alarma. |
+
+![Estados del workflow](diagramas/estados.png)
 
 ## 4.4 El agente de investigación
 
