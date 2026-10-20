@@ -20,7 +20,7 @@ digraph logica {
   subgraph cluster_wf {
     label="Workflow de Incidencia · orquestación determinista, estados persistidos"; style="rounded"; color="#555555";
     A1 [label="1 Recibir"];
-    A2 [label="2 Validar,\ndeduplicar,\ncorrelacionar"];
+    A2 [label="2 Extraer (Tickets),\nvalidar, deduplicar,\ncorrelacionar"];
     A3 [label="3 Enriquecer\ncontexto"];
     A4 [label="4 Clasificar y\npriorizar\n(reglas + SLA)"];
     A5 [label="5 Investigar", fillcolor="#e6dcf5", color="#6b3fa0"];
@@ -31,15 +31,17 @@ digraph logica {
     A1 -> A2 -> A3 -> A4 -> A5 -> A6 -> A7 -> V -> A8;
   }
 
+  PII [label="Enmascarado PII\n+ Guardrails", fillcolor="#dcfce7", color="#15803d"];
+
   subgraph cluster_ia {
-    label="IA generativa · detrás de enmascarado PII + Guardrails"; style="rounded"; color="#6b3fa0";
+    label="IA generativa"; style="rounded"; color="#6b3fa0";
     node [fillcolor="#e6dcf5", color="#6b3fa0"];
     LLME [label="LLM extracción\n(workflow IA)"];
     AG   [label="Agente de investigación\nloop acotado: ≤8 tools, ≤90 s"];
     LLMR [label="LLM resumen\n(workflow IA)"];
   }
 
-  MCP [label="Servidor MCP · solo lectura\nget_device_status · get_topology_neighbors · get_service_context\nget_incident_timeline · search_procedures · search_similar_incidents", fillcolor="#dcfce7", color="#15803d"];
+  MCP [label="Servidor MCP · solo lectura · respuestas seudonimizadas\nget_device_status · get_topology_neighbors · get_service_context\nget_incident_timeline · search_procedures · search_similar_incidents", fillcolor="#dcfce7", color="#15803d"];
 
   subgraph cluster_data {
     label="Datos de la solución"; style="rounded"; color="#1d4ed8";
@@ -54,7 +56,8 @@ digraph logica {
   { rank=same; MON; TCK; CAT; RDB; DOCS; }
   { rank=same; Q; CON; }
   { rank=same; A1; A2; A3; A4; A5; A6; A7; V; A8; }
-  { rank=same; LLME; AG; LLMR; OPS; RES; }
+  { rank=same; PII; OPS; RES; }
+  { rank=same; LLME; AG; LLMR; }
   { rank=same; ST; VDB; }
 
   MON -> Q [label="alertas"];
@@ -64,9 +67,13 @@ digraph logica {
   CON -> RDB [constraint=false];
   CON -> CAT [constraint=false];
   CON -> MON [constraint=false];
-  A4 -> LLME [style=dashed, label="texto libre"];
-  A5 -> AG   [style=dashed, label="contexto"];
-  A7 -> LLMR [style=dashed, label="hechos + evidencias"];
+  CON -> TCK [constraint=false];
+  A2 -> PII [style=dashed, label="texto libre"];
+  A5 -> PII [style=dashed, label="contexto"];
+  A7 -> PII [style=dashed, label="hechos +\nevidencias"];
+  PII -> LLME [style=dashed];
+  PII -> AG   [style=dashed];
+  PII -> LLMR [style=dashed];
   AG -> MCP  [label="tool calls"];
   MCP -> CON [constraint=false, label="lectura"];
   MCP -> ST;

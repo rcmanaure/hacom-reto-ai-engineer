@@ -2,7 +2,7 @@
 
 Diseño de una solución que reduce el tiempo de análisis de incidencias de red para operadores de telecomunicaciones, con IA generativa acotada y sin capacidad de actuar sobre la red.
 
-**Tesis:** un workflow determinista orquesta las 8 actividades, un único agente investiga causas probables con tools de solo lectura, y dos llamadas LLM puntuales extraen campos y redactan el resumen. Todo lo que tiene una regla conocida (prioridad, SLA, ruteo, escalamiento, escritura) queda fuera del LLM. Corre en AWS en topología híbrida.
+**Tesis:** un workflow determinista orquesta las 8 actividades, un único agente investiga causas probables con tools de solo lectura, y dos llamadas LLM puntuales extraen campos y redactan el resumen. Todo lo que tiene una regla conocida (urgencia, prioridad, SLA, ruteo, escalamiento, escritura) queda fuera del LLM. La derivación solo espera a un humano si faltan datos o el ruteo es ambiguo. Corre en AWS en topología híbrida, con una cuenta por operador.
 
 > Esto es un **diseño**. El prototipo incluye contratos, reglas y casos de evaluación ejecutables; no se desplegó infraestructura ni se invocó un modelo real.
 
@@ -24,7 +24,7 @@ Diseño de una solución que reduce el tiempo de análisis de incidencias de red
 ## Decisiones clave
 
 1. [Workflow determinista con un único agente](docs/adr/0001-workflow-determinista-con-un-solo-agente.md), no un agente orquestador ni multi-agente.
-2. [Loop de agente propio sobre la Bedrock Converse API](docs/adr/0002-loop-de-agente-propio-sobre-converse-api.md), con límites duros (≤8 tools, ≤90 s).
+2. [Loop de agente propio sobre la Bedrock Converse API](docs/adr/0002-loop-de-agente-propio-sobre-converse-api.md), en Lambda y con límites duros (≤8 tools, ≤90 s).
 3. [Servidor MCP de solo lectura como frontera de seguridad](docs/adr/0003-servidor-mcp-de-solo-lectura-como-frontera.md): la garantía de no actuar sobre la red la da IAM, no el prompt.
 
 ## Ejecutar la evaluación determinista
@@ -36,7 +36,7 @@ cd prototipo
 uv run --python 3.13 --with pydantic python eval_deterministic.py
 ```
 
-Corre 15 casos (normales, escalamiento, prompt injection, cita alucinada, acción disfrazada, IA caída) y sale con código 1 si alguno falla. Las salidas del modelo en `casos.json` son fijas: se prueba el validador y las reglas, no la calidad de un modelo.
+Corre 18 casos (normales, Tickets en texto libre, escalamiento, acción de cambio inducida, cita alucinada, acción disfrazada, falso positivo, IA caída) y sale con código 1 si alguno falla. Las salidas del modelo en `casos.json` son fijas: se prueba el validador y las reglas, no la calidad de un modelo.
 
 ## Regenerar diagramas y documento
 

@@ -1,5 +1,5 @@
 {
-  "_comentario": "Contratos de las tools que expone el servidor MCP al agente de investigación. Todas son de solo lectura (ADR 0003). Cada resultado lleva un evidence_id que el resumen debe citar; el validador comprueba que la cita exista en la traza de la ejecución.",
+  "_comentario": "Contratos de las tools que expone el servidor MCP al agente de investigación. Todas son de solo lectura (ADR 0003). Cada resultado lleva un evidence_id que el resumen debe citar; el validador comprueba que la cita exista en la traza de la ejecución. El servidor MCP seudonimiza la PII de cada respuesta (clientes, contactos, IPs públicas) antes de devolverla al agente, porque esas respuestas también llegan al modelo.",
   "tools": [
     {
       "name": "get_device_status",

@@ -14,6 +14,10 @@ _Evitar_: alarma, evento, notificación
 Registro en la plataforma de tickets, abierto por un usuario o por un sistema.
 _Evitar_: caso, reclamo, solicitud
 
+**Síntoma**:
+Manifestación del problema descrita en un Ticket, normalizada a un catálogo cerrado (sin servicio, degradación, intermitencia, consulta).
+_Evitar_: falla, problema reportado
+
 ### Unidad de trabajo
 
 **Incidencia**:

@@ -1,6 +1,6 @@
 # Workflow determinista con un único agente de investigación
 
-Las 8 actividades las orquesta un workflow determinista en AWS Step Functions (Standard), con un estado por actividad y `waitForTaskToken` para la aprobación del Operador NOC. El único agente IA se invoca en la actividad 5 (investigar causas probables), porque es la única donde la ruta de consulta no es predecible. La extracción de campos (actividad 4) y el resumen técnico (actividad 7) son llamadas LLM puntuales dentro del workflow, no agentes. Así, el control de flujo, el SLA, el ruteo y el escalamiento quedan en código auditable.
+Las 8 actividades las orquesta un workflow determinista en AWS Step Functions (Standard), con un estado por actividad y `waitForTaskToken` para la aprobación del Operador NOC. El único agente IA se invoca en la actividad 5 (investigar causas probables), porque es la única donde la ruta de consulta no es predecible. La extracción de campos de Tickets en texto libre (actividad 2) y el resumen técnico (actividad 7) son llamadas LLM puntuales dentro del workflow, no agentes. Así, el control de flujo, el SLA, el ruteo y el escalamiento quedan en código auditable.
 
 ## Opciones consideradas
 

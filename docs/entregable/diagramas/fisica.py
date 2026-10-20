@@ -3,9 +3,8 @@
 Render: uv run --python 3.13 --with diagrams python fisica.py  (requiere Graphviz en PATH)
 """
 from diagrams import Cluster, Diagram, Edge
-from diagrams.aws.compute import Fargate, Lambda
+from diagrams.aws.compute import Lambda
 from diagrams.aws.database import Aurora
-from diagrams.aws.devtools import XRay
 from diagrams.aws.integration import EventbridgePipes, SQS, StepFunctions
 from diagrams.aws.management import Cloudtrail, Cloudwatch, SystemsManagerAppConfig
 from diagrams.aws.ml import Bedrock
@@ -32,39 +31,40 @@ with Diagram("Arquitectura física", filename="fisica", outformat="png",
         noc = Users("Operador NOC")
 
     with Cluster("Enlace privado"):
-        dx = DirectConnect("Direct Connect")
+        dx = DirectConnect("Direct Connect\n+ Route 53 Resolver")
         vpn = SiteToSiteVpn("VPN respaldo")
 
-    with Cluster("AWS · región de referencia"):
+    with Cluster("AWS · cuenta dedicada por operador"):
         with Cluster("VPC privada (sin salida a Internet)"):
-            apigw = APIGateway("API Gateway privado\nwebhooks + callback HITL")
+            apigw = APIGateway("API Gateway privado\nwebhooks: eventos\ny aprobaciones")
             cola = SQS("SQS + DLQ")
             pipes = EventbridgePipes("EventBridge Pipes")
             sfn = StepFunctions("Step Functions\nStandard")
             with Cluster("Pasos deterministas"):
-                lam = Lambda("Lambdas: validar,\ncorrelacionar, enriquecer,\nreglas, enmascarar PII")
+                lam = Lambda("Lambdas: extraer, validar,\ncorrelacionar, enriquecer,\nreglas, enmascarar PII")
                 writer = Lambda("ticket-writer\n(único rol con escritura)")
-            agente = Fargate("Agente de investigación\nECS Fargate")
-            mcp = Lambda("Servidor MCP\nsolo lectura (IAM auth)")
+            agente = Lambda("Agente\n≤8 tools, ≤90 s")
+            apigw_mcp = APIGateway("API Gateway privado\nMCP (IAM auth)")
+            mcp = Lambda("Servidor MCP\nsolo lectura")
             aurora = Aurora("Aurora PostgreSQL\nServerless v2\nestado + auditoría + pgvector")
-            vpce = Endpoint("VPC endpoints\nBedrock, S3, Secrets")
+            vpce = Endpoint("VPC endpoints\n(lista en §5)")
 
         with Cluster("Servicios gestionados"):
             bedrock = Bedrock("Bedrock: modelo fundacional\n+ Guardrails\n+ Knowledge Bases")
-            s3 = S3("S3: documentos,\nlogs de invocación\n(Object Lock)")
+            s3 = S3("S3: documentos,\nIncidencias cerradas,\nlogs (Object Lock)")
             appcfg = SystemsManagerAppConfig("AppConfig\nreglas SLA/ruteo")
 
         with Cluster("Identidad, secretos y observabilidad"):
-            sso = SingleSignOn("IAM Identity Center\n(federado al IdP)")
+            sso = SingleSignOn("IAM Identity Center\n(administración, federado)")
             sec = SecretsManager("Secrets Manager")
             kms = KMS("KMS")
             cw = Cloudwatch("CloudWatch")
-            xray = XRay("X-Ray")
             trail = Cloudtrail("CloudTrail")
 
-    # Ingesta
+    # Ingesta y aprobaciones: ambas entran por webhook de los sistemas del operador
     mon >> Edge(label="alertas") >> dx
-    tickets >> Edge(label="tickets") >> dx
+    tickets >> Edge(label="tickets y\naprobaciones") >> dx
+    noc >> Edge(label="aprueba en el ticket") >> tickets
     dx - Edge(style="dashed") - vpn
     dx >> apigw >> cola >> pipes >> sfn
 
@@ -74,17 +74,17 @@ with Diagram("Arquitectura física", filename="fisica", outformat="png",
     sfn >> writer
     lam >> Edge(label="lectura") >> dx
     lam >> aurora
-    agente >> Edge(label="MCP") >> mcp
+    agente >> Edge(label="MCP") >> apigw_mcp >> mcp
     mcp >> Edge(label="lectura") >> dx
     mcp >> aurora
+    mcp >> Edge(label="Retrieve") >> vpce
     agente >> vpce >> bedrock
     lam >> vpce
     bedrock >> Edge(label="KB") >> aurora
+    aurora >> Edge(label="export cerradas\ny revisadas", style="dashed") >> s3
     repos >> Edge(label="sync versionado", style="dashed") >> s3
     s3 >> Edge(style="dashed") >> bedrock
     lam >> Edge(style="dashed") >> appcfg
 
-    # Escritura y supervisión humana
+    # Única ruta de escritura
     writer >> Edge(label="nota interna / derivación", color="firebrick", penwidth="2") >> dx
-    noc >> Edge(label="aprobación (task token)") >> apigw
-    sso >> Edge(style="dotted") >> noc

@@ -1,4 +1,4 @@
-"""Reglas deterministas: campos obligatorios, prioridad/SLA, ruteo y escalamiento.
+"""Reglas deterministas: campos obligatorios, urgencia, prioridad/SLA, ruteo y escalamiento.
 
 En producción las tablas viven en AppConfig (versionadas y validadas); aquí van inline.
 Los valores son supuestos del diseño, no reglas reales del operador.
@@ -7,7 +7,10 @@ Los valores son supuestos del diseño, no reglas reales del operador.
 CAMPOS_ALERTA = ("id", "origen", "equipo_id", "severidad", "timestamp")
 CAMPOS_TICKET = ("id", "origen", "descripcion", "timestamp")
 
-URGENCIA = {"critical": "alta", "major": "media", "minor": "baja", "warning": "baja"}
+URGENCIA_SEVERIDAD = {"critical": "alta", "major": "media", "minor": "baja", "warning": "baja"}
+
+# El Síntoma lo extrae el LLM del texto libre, pero la urgencia la fija esta tabla, no el modelo.
+URGENCIA_SINTOMA = {"sin_servicio": "alta", "degradacion": "media", "intermitencia": "media", "consulta": "baja"}
 
 MATRIZ_PRIORIDAD = {
     ("alto", "alta"): "P1", ("alto", "media"): "P2", ("alto", "baja"): "P3",
@@ -30,13 +33,32 @@ ERRORES_NO_VERIFICABLE = {"ESQUEMA", "CITA_NO_DECLARADA", "CITA_INEXISTENTE", "H
 # E7 marca degradación (sin análisis IA) pero no exige operador por sí sola.
 CODIGOS_QUE_REQUIEREN_OPERADOR = {"E1", "E2", "E3", "E4", "E5", "E6"}
 
+# Solo estos impiden derivar: sin datos o sin equipo claro. El resto se revisa en paralelo a la derivación.
+CODIGOS_QUE_BLOQUEAN_DERIVACION = {"E1", "E3"}
+
+
+def datos_evento(evento: dict) -> dict:
+    """Campos del evento más los extraídos por el LLM (actividad 2, solo Tickets)."""
+    return {**evento, **(evento.get("extraccion") or {})}
+
 
 def campos_faltantes(evento: dict) -> list[str]:
-    requeridos = CAMPOS_ALERTA if evento.get("tipo") == "alerta" else CAMPOS_TICKET
-    faltan = [c for c in requeridos if not evento.get(c)]
-    if evento.get("tipo") == "ticket" and not (evento.get("equipo_id") or evento.get("servicio_id")):
-        faltan.append("equipo_id|servicio_id")
+    datos = datos_evento(evento)
+    requeridos = CAMPOS_ALERTA if datos.get("tipo") == "alerta" else CAMPOS_TICKET
+    faltan = [c for c in requeridos if not datos.get(c)]
+    if datos.get("tipo") == "ticket":
+        if not (datos.get("equipo_id") or datos.get("servicio_id")):
+            faltan.append("equipo_id|servicio_id")
+        if datos.get("sintoma") not in URGENCIA_SINTOMA:
+            faltan.append("sintoma")
     return faltan
+
+
+def urgencia(evento: dict) -> str:
+    datos = datos_evento(evento)
+    if datos["tipo"] == "alerta":
+        return URGENCIA_SEVERIDAD[datos["severidad"]]
+    return URGENCIA_SINTOMA[datos["sintoma"]]
 
 
 def impacto(clientes_afectados: int, tier: str) -> str:
@@ -47,8 +69,8 @@ def impacto(clientes_afectados: int, tier: str) -> str:
     return "bajo"
 
 
-def prioridad(severidad: str, clientes_afectados: int, tier: str) -> str:
-    return MATRIZ_PRIORIDAD[(impacto(clientes_afectados, tier), URGENCIA[severidad])]
+def prioridad(urg: str, clientes_afectados: int, tier: str) -> str:
+    return MATRIZ_PRIORIDAD[(impacto(clientes_afectados, tier), urg)]
 
 
 def ruteo(tipos_equipo: list[str]) -> str | None:
@@ -83,3 +105,7 @@ def codigos_escalamiento(prio: str, equipo: str | None, errores_resumen: list[st
 
 def requiere_operador(codigos: list[str]) -> bool:
     return bool(CODIGOS_QUE_REQUIEREN_OPERADOR & set(codigos))
+
+
+def deriva_automaticamente(codigos: list[str]) -> bool:
+    return not (CODIGOS_QUE_BLOQUEAN_DERIVACION & set(codigos))

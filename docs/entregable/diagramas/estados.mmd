@@ -1,10 +1,10 @@
 stateDiagram-v2
   direction LR
   [*] --> Recibida
-  Recibida --> Validada: campos obligatorios OK
-  Recibida --> EsperaOperador: E1 campos faltantes
+  Recibida --> Validada: campos OK (Tickets, tras extracción IA)
+  Recibida --> EsperaOperador: E1 faltan campos o Síntoma no catalogado
   Validada --> Adjuntada: correlaciona con Incidencia abierta
-  Adjuntada --> [*]
+  Adjuntada --> [*]: recalcula prioridad de la Incidencia existente
   Validada --> Enriquecida: nueva Incidencia
   Enriquecida --> Priorizada: reglas de prioridad y SLA
   Priorizada --> Investigada: agente dentro de límites
@@ -12,13 +12,14 @@ stateDiagram-v2
   Priorizada --> SinAnalisisIA: E7 fallo Bedrock (degradación)
   Investigada --> Resumida
   InvestigacionIncompleta --> Resumida
-  Resumida --> SalidaValidada: esquema + citas OK
-  Resumida --> EsperaOperador: E2 hipótesis sin evidencia
-  SalidaValidada --> Derivada: ruteo unívoco y sin E3/E4/E6
-  SalidaValidada --> EsperaOperador: E3 ruteo ambiguo, E4 P1, E6 requiere autorización
-  SinAnalisisIA --> Derivada: ruteo por reglas
-  SinAnalisisIA --> EsperaOperador: ruteo ambiguo
-  EsperaOperador --> Derivada: Operador NOC aprueba o corrige
-  EsperaOperador --> Escalada: timeout de aprobación según SLA
-  Derivada --> [*]: Ticket maestro actualizado
+  Resumida --> SalidaValidada: validación determinista (E2 retiene el resumen)
+  SalidaValidada --> Derivada: ruteo unívoco
+  SalidaValidada --> EsperaOperador: E3 ruteo ambiguo
+  SinAnalisisIA --> Derivada: ruteo unívoco
+  SinAnalisisIA --> EsperaOperador: E3 ruteo ambiguo
+  EsperaOperador --> Derivada: Operador NOC decide en el ticket
+  EsperaOperador --> Escalada: timeout según SLA
+  Derivada --> RevisionParalela: E2, E4, E5 o E6
+  Derivada --> [*]: sin códigos
+  RevisionParalela --> [*]: Operador NOC aprueba o corrige el resumen
   Escalada --> [*]: supervisor de turno notificado

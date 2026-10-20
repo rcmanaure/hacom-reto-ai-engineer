@@ -16,11 +16,11 @@ def evaluar(caso: dict) -> dict:
     e = caso["entrada"]
     faltan = reglas.campos_faltantes(e["evento"])
     if faltan:
-        return {"prioridad": None, "sla_min": None, "equipo": None,
-                "escalamiento": ["E1"], "errores_resumen": [], "requiere_operador": True}
+        return {"prioridad": None, "sla_min": None, "equipo": None, "escalamiento": ["E1"],
+                "errores_resumen": [], "requiere_operador": True, "deriva": False}
 
     ctx = e["contexto"]
-    prio = reglas.prioridad(ctx["severidad"], ctx["clientes_afectados"], ctx["tier"])
+    prio = reglas.prioridad(reglas.urgencia(e["evento"]), ctx["clientes_afectados"], ctx["tier"])
     equipo = reglas.ruteo(ctx["tipos_equipo"])
     ia_disponible = e["salida_modelo"] is not None
     resumen, errores = (validar_resumen(e["salida_modelo"], set(e["trace_ids"]))
@@ -28,7 +28,8 @@ def evaluar(caso: dict) -> dict:
     codigos = reglas.codigos_escalamiento(prio, equipo, errores, resumen, ia_disponible)
     return {"prioridad": prio, "sla_min": reglas.SLA_RESPUESTA_MIN[prio], "equipo": equipo,
             "escalamiento": codigos, "errores_resumen": errores,
-            "requiere_operador": reglas.requiere_operador(codigos)}
+            "requiere_operador": reglas.requiere_operador(codigos),
+            "deriva": reglas.deriva_automaticamente(codigos)}
 
 
 def main() -> int:
