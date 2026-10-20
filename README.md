@@ -13,7 +13,7 @@ Todo se puede ver desde el navegador, haciendo clic en los enlaces. Orden sugeri
 | Paso | Qué abrir | Qué vas a encontrar | Tiempo |
 |---|---|---|---|
 | 1 | [**Documento técnico (PDF)**](docs/entregable/HACOM-Reto-AI-Engineer.pdf) | La propuesta completa: 20 páginas con índice. Empieza por el resumen ejecutivo (pág. 2). | 15–25 min |
-| 2 | **Video de presentación** | Resumen de 5 minutos de las decisiones y los diagramas. Se entrega por el canal indicado por HACOM. | 5 min |
+| 2 | **Video de presentación** | Resumen de menos de 4 minutos que recorre las decisiones y los diagramas. Se entrega por el canal indicado por HACOM. | 4 min |
 | 3 | [Diagrama lógico](docs/entregable/diagramas/logica.png) · [Diagrama de estados](docs/entregable/diagramas/estados.png) · [Diagrama físico](docs/entregable/diagramas/fisica.png) | Los mismos diagramas del documento, en alta resolución para hacer zoom. | 5 min |
 | 4 | [Resultado de las pruebas del prototipo](prototipo/resultado-evaluacion.txt) | Los 18 casos de prueba y su resultado (18/18 OK), sin necesidad de ejecutar nada. | 2 min |
 
