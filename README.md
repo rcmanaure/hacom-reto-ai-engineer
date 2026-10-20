@@ -48,8 +48,10 @@ dot -Tpng -Gdpi=150 logica.dot -o logica.png
 mmdc -q -i estados.mmd -o estados.png -s 2
 uv run --python 3.13 --with diagrams python fisica.py
 
-cd ..
-uv run --python 3.13 --with pypandoc_binary python -c "import pypandoc; pypandoc.convert_file('documento-tecnico.md','docx',outputfile='HACOM-Reto-AI-Engineer.docx',extra_args=['--toc','--toc-depth=2','--resource-path=.'])"
 ```
 
-El formato de tablas (bordes, encabezado sombreado) y la exportación a PDF se aplicaron después en Word; al regenerar el `.docx` hay que repetirlos.
+El DOCX y el PDF se generan con [`docs/entregable/exportar.ps1`](docs/entregable/exportar.ps1) (PowerShell en Windows; requiere Microsoft Word). El script convierte el Markdown con pandoc, da formato a las tablas, pone el diagrama lógico en una página horizontal y exporta a PDF.
+
+```powershell
+docs\entregable\exportar.ps1
+```

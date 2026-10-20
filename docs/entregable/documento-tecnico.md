@@ -4,6 +4,7 @@ subtitle: "Reto técnico · AI Engineer · HACOM"
 author: "Rubén Castillo"
 date: "Octubre 2026"
 lang: es
+toc-title: "Índice"
 ---
 
 # 1. Resumen ejecutivo
@@ -78,9 +79,9 @@ Ninguna depende de una "confianza" autodeclarada por el LLM, porque no es una se
 | E4 | Prioridad P1 | Ya derivada por regla; revisión humana del resumen **en paralelo**. |
 | E5 | El agente agotó su presupuesto de pasos o tiempo | Revisión en paralelo; el resumen se marca "investigación incompleta". |
 | E6 | Hay una acción sugerida que es un cambio | Revisión en paralelo; la acción se deriva a gestión de cambios y nunca se ejecuta. Si la acción no viene marcada como que requiere autorización, o es un cambio clasificado como diagnóstico, **el resumen se retiene**. |
+| E7 | IA no disponible | Marca de degradación; no escala por sí sola. |
 
 **Regla de publicación del resumen:** cualquier error del validador (E2 o E6 con error) retiene el resumen; solo un resumen sin errores se publica como nota interna.
-| E7 | IA no disponible | Marca de degradación; no escala por sí sola. |
 
 # 4. Arquitectura conceptual / lógica
 
