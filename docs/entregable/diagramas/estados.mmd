@@ -2,24 +2,26 @@ stateDiagram-v2
   direction LR
   [*] --> Recibida
   Recibida --> Validada: campos OK (Tickets, tras extracción IA)
-  Recibida --> EsperaOperador: E1 faltan campos o Síntoma no catalogado
+  Recibida --> EsperaDatos: E1 faltan campos o Síntoma no catalogado
+  EsperaDatos --> Validada: Operador NOC completa datos en el ticket
+  EsperaDatos --> Escalada: timeout según SLA
   Validada --> Adjuntada: correlaciona con Incidencia abierta
   Adjuntada --> [*]: recalcula prioridad de la Incidencia existente
   Validada --> Enriquecida: nueva Incidencia
   Enriquecida --> Priorizada: reglas de prioridad y SLA
-  Priorizada --> Investigada: agente dentro de límites
-  Priorizada --> InvestigacionIncompleta: E5 límite de pasos/tiempo
-  Priorizada --> SinAnalisisIA: E7 fallo Bedrock (degradación)
-  Investigada --> Resumida
-  InvestigacionIncompleta --> Resumida
-  Resumida --> SalidaValidada: validación determinista (E2 retiene el resumen)
-  SalidaValidada --> Derivada: ruteo unívoco
-  SalidaValidada --> EsperaOperador: E3 ruteo ambiguo
-  SinAnalisisIA --> Derivada: ruteo unívoco
-  SinAnalisisIA --> EsperaOperador: E3 ruteo ambiguo
-  EsperaOperador --> Derivada: Operador NOC decide en el ticket
-  EsperaOperador --> Escalada: timeout según SLA
-  Derivada --> RevisionParalela: E2, E4, E5 o E6
-  Derivada --> [*]: sin códigos
-  RevisionParalela --> [*]: Operador NOC aprueba o corrige el resumen
+  Priorizada --> Derivada: ruteo unívoco, sin esperar a la IA
+  Priorizada --> SinEquipo: E3 ruteo ambiguo
+  Derivada --> EnAnalisis
+  SinEquipo --> EnAnalisis: el agente sugerirá un equipo
+  EnAnalisis --> Resumida: agente + resumen (E5 si incompleto)
+  EnAnalisis --> SinAnalisisIA: E7 fallo Bedrock
+  Resumida --> Publicada: validador sin errores
+  Resumida --> Retenida: errores del validador (E2 o E6)
+  Publicada --> [*]: sin E3, E4, E5 ni E6
+  Publicada --> RevisionOperador: E3, E4, E5 o E6
+  Retenida --> RevisionOperador
+  SinAnalisisIA --> [*]: ya derivada
+  SinAnalisisIA --> RevisionOperador: E3
+  RevisionOperador --> [*]: Operador NOC aprueba o corrige y, si E3, decide el equipo
+  RevisionOperador --> Escalada: timeout según SLA
   Escalada --> [*]: supervisor de turno notificado

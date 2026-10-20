@@ -23,12 +23,12 @@ digraph logica {
     A2 [label="2 Extraer (Tickets),\nvalidar, deduplicar,\ncorrelacionar"];
     A3 [label="3 Enriquecer\ncontexto"];
     A4 [label="4 Clasificar y\npriorizar\n(reglas + SLA)"];
+    A6 [label="6 Ruteo (reglas)\ny derivación\ninmediata"];
     A5 [label="5 Investigar", fillcolor="#e6dcf5", color="#6b3fa0"];
-    A6 [label="6 Ruteo\n(tabla de reglas)"];
     A7 [label="7 Resumen\ntécnico", fillcolor="#e6dcf5", color="#6b3fa0"];
-    V  [label="Validación\ndeterminista\nesquema · citas ·\npolíticas", fillcolor="#dcfce7", color="#15803d"];
-    A8 [label="8 Actualizar\nTicket maestro,\nderivar / escalar"];
-    A1 -> A2 -> A3 -> A4 -> A5 -> A6 -> A7 -> V -> A8;
+    V  [label="Validación\ndeterminista\npublica o retiene", fillcolor="#dcfce7", color="#15803d"];
+    A8 [label="8 Nota interna en\nTicket maestro,\nescalar"];
+    A1 -> A2 -> A3 -> A4 -> A6 -> A5 -> A7 -> V -> A8;
   }
 
   PII [label="Enmascarado PII\n+ Guardrails", fillcolor="#dcfce7", color="#15803d"];
@@ -55,7 +55,7 @@ digraph logica {
 
   { rank=same; MON; TCK; CAT; RDB; DOCS; }
   { rank=same; Q; CON; }
-  { rank=same; A1; A2; A3; A4; A5; A6; A7; V; A8; }
+  { rank=same; A1; A2; A3; A4; A6; A5; A7; V; A8; }
   { rank=same; PII; OPS; RES; }
   { rank=same; LLME; AG; LLMR; }
   { rank=same; ST; VDB; }
@@ -68,9 +68,10 @@ digraph logica {
   CON -> CAT [constraint=false];
   CON -> MON [constraint=false];
   CON -> TCK [constraint=false];
-  A2 -> PII [style=dashed, label="texto libre"];
-  A5 -> PII [style=dashed, label="contexto"];
-  A7 -> PII [style=dashed, label="hechos +\nevidencias"];
+  // constraint=false: si no, estas aristas reordenan la fila del workflow (5 quedaba a la derecha de 7)
+  A2 -> PII [style=dashed, label="texto libre", constraint=false];
+  A5 -> PII [style=dashed, label="contexto", constraint=false];
+  A7 -> PII [style=dashed, label="hechos +\nevidencias", constraint=false];
   PII -> LLME [style=dashed];
   PII -> AG   [style=dashed];
   PII -> LLMR [style=dashed];
@@ -81,7 +82,8 @@ digraph logica {
   A2 -> ST [style=dotted, dir=both, label="estado"];
   DOCS -> VDB [style=dotted, label="ingesta versionada", constraint=false];
   ST -> VDB [style=dotted, label="cerradas y revisadas"];
-  A8 -> TCK [penwidth=2.2, color="#b91c1c", fontcolor="#b91c1c", label="única ruta\nde escritura", constraint=false];
+  A6 -> TCK [penwidth=2.2, color="#b91c1c", fontcolor="#b91c1c", label="derivación", constraint=false];
+  A8 -> TCK [penwidth=2.2, color="#b91c1c", fontcolor="#b91c1c", label="nota interna\n(escritura solo del workflow)", constraint=false];
   A8 -> OPS [label="escalamiento"];
   OPS -> A8 [label="aprueba / corrige"];
   TCK -> RES [style=dotted, label="asignación", constraint=false];

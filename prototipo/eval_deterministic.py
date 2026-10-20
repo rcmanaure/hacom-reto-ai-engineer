@@ -17,7 +17,8 @@ def evaluar(caso: dict) -> dict:
     faltan = reglas.campos_faltantes(e["evento"])
     if faltan:
         return {"prioridad": None, "sla_min": None, "equipo": None, "escalamiento": ["E1"],
-                "errores_resumen": [], "requiere_operador": True, "deriva": False}
+                "errores_resumen": [], "requiere_operador": True, "deriva": False,
+                "publica_resumen": False}
 
     ctx = e["contexto"]
     prio = reglas.prioridad(reglas.urgencia(e["evento"]), ctx["clientes_afectados"], ctx["tier"])
@@ -29,7 +30,8 @@ def evaluar(caso: dict) -> dict:
     return {"prioridad": prio, "sla_min": reglas.SLA_RESPUESTA_MIN[prio], "equipo": equipo,
             "escalamiento": codigos, "errores_resumen": errores,
             "requiere_operador": reglas.requiere_operador(codigos),
-            "deriva": reglas.deriva_automaticamente(codigos)}
+            "deriva": reglas.deriva_automaticamente(codigos),
+            "publica_resumen": reglas.publica_resumen(ia_disponible, errores)}
 
 
 def main() -> int:

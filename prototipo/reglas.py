@@ -109,3 +109,8 @@ def requiere_operador(codigos: list[str]) -> bool:
 
 def deriva_automaticamente(codigos: list[str]) -> bool:
     return not (CODIGOS_QUE_BLOQUEAN_DERIVACION & set(codigos))
+
+
+def publica_resumen(ia_disponible: bool, errores_resumen: list[str]) -> bool:
+    """Cualquier error del validador retiene el resumen hasta que lo revise el Operador NOC."""
+    return ia_disponible and not errores_resumen
