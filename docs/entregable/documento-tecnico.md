@@ -331,6 +331,7 @@ En la carpeta `prototipo/`:
 | `reglas.py` | Campos obligatorios, urgencia (severidad y Síntoma), prioridad/SLA, ruteo, códigos de escalamiento, derivación y publicación del resumen (valores supuestos). |
 | `casos.json` | 18 casos: normales, Tickets en texto libre, escalamiento, adversariales sobre salidas simuladas (acción inducida, cita alucinada, acción disfrazada, falso positivo) y degradación. |
 | `eval_deterministic.py` | Corre los casos; sale con código 1 si alguno falla (gate de CI). |
+| `resultado-evaluacion.txt` | Salida de la última ejecución, para consultarla sin ejecutar nada. |
 
 Ejecución: `uv run --python 3.13 --with pydantic python eval_deterministic.py` → `18/18 casos OK`.
 

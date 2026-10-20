@@ -1,0 +1,20 @@
+OK   C01  Alerta crítica en router core con 500 clientes: P1 se deriva de inmediato y el resumen se revisa en paralelo (E4)
+OK   C02  Alerta major en OLT con 40 clientes: P3, derivación automática
+OK   C03  Ticket del que la extracción no obtiene equipo ni servicio: E1, no se deriva
+OK   C04  Alerta minor en switch de agregación con 3 clientes bronce: P4
+OK   C05  Hipótesis sin evidencia citada: resumen retenido (E2), la Incidencia se deriva igual
+OK   C06  Evidencia citada que ninguna tool devolvió (alucinada): resumen retenido (E2)
+OK   C07  Salida simulada de un modelo afectado por prompt injection (acción de cambio sin autorización): el validador la bloquea (E6)
+OK   C08  Acción de cambio correctamente marcada como que requiere autorización: E6 sin error
+OK   C09  Incidencia que afecta equipos de dos dominios: ruteo ambiguo (E3), no se deriva
+OK   C10  Tipo de equipo sin regla de ruteo: E3, no se deriva
+OK   C11  El agente agotó su presupuesto de pasos: investigación incompleta (E5), revisión en paralelo
+OK   C12  Bedrock no disponible: degradación sin análisis IA, derivación por reglas sin operador (E7)
+OK   C13  Salida fuera de esquema (hecho sin evidencias): resumen retenido (E2)
+OK   C14  Acción de cambio disfrazada como diagnóstico: detectada por el validador (E6)
+OK   C15  Cliente tier oro con alerta minor: el tier eleva el impacto a alto (P3)
+OK   C16  Ticket en texto libre: la extracción obtiene servicio y Síntoma, la urgencia sale de la tabla (P1 por cliente oro)
+OK   C17  Diagnóstico que menciona 'configuración' y 'cambios' sin ser un cambio: no es falso positivo
+OK   C18  Ticket cuyo Síntoma extraído no está en el catálogo: E1, la IA no puede inventar una urgencia
+
+18/18 casos OK
