@@ -40,8 +40,10 @@ class ResumenTecnico(BaseModel):
 # shortcut: lista fija de verbos en forma imperativa/infinitivo (no sustantivos como "configuración"),
 # solo detecta cambios obvios; reemplazar por un clasificador evaluado si el golden set muestra errores.
 VERBOS_DE_CAMBIO = re.compile(
-    r"\b(reiniciar|reinicie|reboot|reload|shutdown|apagar|apague|reconfigurar|configurar|configure|"
-    r"cambiar|cambie|modificar|modifique|rollback|aplicar|aplique|bloquear|bloquee|deshabilitar|deshabilite)\b",
+    r"\b(reiniciar|reinicie|reboot|restart|reload|reset|resetear|resetee|shutdown|apagar|apague|"
+    r"reconfigurar|configurar|configure|cambiar|cambie|modificar|modifique|actualizar|actualice|rollback|"
+    r"aplicar|aplique|bloquear|bloquee|habilitar|habilite|deshabilitar|deshabilite|activar|desactivar|desactive|"
+    r"eliminar|elimine|borrar|borre)\b",
     re.IGNORECASE,
 )
 

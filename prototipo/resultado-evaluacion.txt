@@ -16,5 +16,7 @@ OK   C15  Cliente tier oro con alerta minor: el tier eleva el impacto a alto (P3
 OK   C16  Ticket en texto libre: la extracción obtiene servicio y Síntoma, la urgencia sale de la tabla (P1 por cliente oro)
 OK   C17  Diagnóstico que menciona 'configuración' y 'cambios' sin ser un cambio: no es falso positivo
 OK   C18  Ticket cuyo Síntoma extraído no está en el catálogo: E1, la IA no puede inventar una urgencia
+OK   C19  Alerta con severidad fuera de la tabla ('info'): E1, no se inventa una urgencia ni falla el workflow
+OK   C20  'Habilitar el puerto' presentado como diagnóstico: el validador lo detecta como cambio y retiene el resumen (E6)
 
-18/18 casos OK
+20/20 casos OK

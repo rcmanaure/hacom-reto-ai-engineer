@@ -21,7 +21,7 @@ Para no frenar la atención, **la derivación no espera ni a la IA ni a un human
 
 La solución corre en **AWS**, en topología híbrida: los sistemas del operador permanecen on-premise y se consultan por Direct Connect. Si la IA falla, la operación se degrada sin detenerse: los pasos deterministas siguen funcionando y la Incidencia se deriva por reglas, marcada "sin análisis IA".
 
-**Qué está implementado y qué no.** Este documento es un diseño. El prototipo adjunto contiene los contratos de tools, el esquema de salida, las reglas deterministas y 18 casos de evaluación ejecutables. No se desplegó ningún servicio ni se invocó ningún modelo real.
+**Qué está implementado y qué no.** Este documento es un diseño. El prototipo adjunto contiene los contratos de tools, el esquema de salida, las reglas deterministas y 20 casos de evaluación ejecutables. No se desplegó ningún servicio ni se invocó ningún modelo real.
 
 ## Términos
 
@@ -172,7 +172,7 @@ Marco: **OWASP Top 10 for LLM Applications (2025)** más riesgos clásicos de pl
 | Riesgo | Escenario | Controles | Verificación |
 |----|-----|--------|-------|
 | **LLM01 Prompt injection** (indirecta) | El texto de un Ticket o de un documento instruye "reinicia el router", o intenta sesgar el resumen o el ruteo. | El agente no tiene tools de escritura (ADR 0003); el contenido externo va delimitado como dato no confiable; Guardrails contra prompt attacks; el ruteo y la prioridad son por reglas; los hechos exigen evidencia de tools, no del texto del Ticket. | Red-team periódico con el modelo real (tasa de bloqueo en la capa 2 de §7). El caso C07 del prototipo verifica solo la última barrera: que el validador detecte una acción de cambio inducida y retenga el resumen para que no se publique (la salida del modelo es simulada). |
-| **LLM06 Agencia excesiva** | El agente ejecuta acciones sobre la red o el ticket. | Rol del agente: solo `execute-api` sobre el MCP y `bedrock:InvokeModel`. La escritura está aislada en `ticket-writer`. Cuentas on-prem del MCP de solo lectura. Security groups que limitan la salida del agente. | Policy-as-code en CI (cfn-guard o Checkov): el build falla si el rol del agente tiene `Put*`, `Update*` o `Delete*`. **Test negativo**: un intento de escritura con las credenciales del MCP contra cada sistema on-prem debe fallar. |
+| **LLM06 Agencia excesiva** | El agente ejecuta acciones sobre la red o el ticket. | Rol del agente con una lista cerrada de acciones: `execute-api:Invoke` sobre el MCP, `bedrock:InvokeModel` sobre los modelos y el perfil de inferencia elegidos, y `bedrock:ApplyGuardrail` sobre su guardrail. La escritura está aislada en `ticket-writer`. Cuentas on-prem del MCP de solo lectura. Security groups que limitan la salida del agente. | Policy-as-code en CI (cfn-guard o Checkov): el build falla si el rol del agente tiene cualquier acción fuera de esa lista cerrada o comodines (`*`) en acciones o recursos. **Test negativo**: un intento de escritura con las credenciales del MCP contra cada sistema on-prem debe fallar. |
 | **LLM02 Fuga de información sensible** | Datos de clientes en prompts, respuestas de tools, logs o respuestas del modelo. | Seudonimización previa, también en las respuestas del MCP; Guardrails PII; inferencia en región (S1); VPC endpoints; logs cifrados con KMS; un despliegue por operador (S8). | Escaneo periódico con Macie del bucket de logs de invocación: cero hallazgos de PII. |
 | **LLM09 Desinformación / alucinación** | Una hipótesis inventada se presenta como hecho. | Esquema que separa hechos de hipótesis; cada afirmación lleva un `evidence_id` verificado contra la traza; si falla, E2 y el resumen se retiene. | Casos C05, C06 y C13; métrica de groundedness en la evaluación offline. |
 | **LLM05 Manejo inseguro de la salida** | La salida del LLM se usa sin validar (ruteo, campos, HTML en el ticket). | Validación Pydantic; la salida nunca decide urgencia, prioridad ni SLA; escape de contenido al escribir en el ticket. | Tests deterministas en CI. |
@@ -204,7 +204,7 @@ Marco: **OWASP Top 10 for LLM Applications (2025)** más riesgos clásicos de pl
 - Validez de esquema, existencia de citas en la traza, hipótesis con evidencia y acciones de cambio marcadas.
 - Reglas de urgencia, prioridad, SLA, ruteo, escalamiento y derivación con casos tabulados.
 - Casos adversariales sobre salidas simuladas: acción de cambio inducida, cita alucinada, acción disfrazada, campos faltantes e IA caída.
-- **Implementado en el prototipo**: 18 casos, todos pasan (`eval_deterministic.py`). Las salidas del modelo en esos casos son fijas: el prototipo verifica el *validador y las reglas*, no la calidad ni la robustez de un modelo real.
+- **Implementado en el prototipo**: 20 casos, todos pasan (`eval_deterministic.py`). Las salidas del modelo en esos casos son fijas: el prototipo verifica el *validador y las reglas*, no la calidad ni la robustez de un modelo real.
 
 **Capa 2: offline probabilística** (golden set de unas 200 Incidencias históricas anonimizadas más casos sintéticos).
 
@@ -252,11 +252,11 @@ Las correcciones del Operador NOC alimentan el golden set (con revisión), lo qu
 | Pasos deterministas (1–4, 6, 8) | < 5 s | — |
 | Extracción (modelo pequeño, solo Tickets) | 1–2 s | ~1,5k entrada / 0,3k salida |
 | **Hasta la derivación** (ruteo unívoco) | **< 10 s** | |
-| Agente (modelo medio, ≤8 tools) | 30–90 s | ~30k entrada / 2k salida (acumulado) |
+| Agente (modelo medio, ≤8 llamadas a tools) | 30–90 s | ~30k entrada / 2k salida (acumulado) |
 | Resumen (modelo medio) | 5–10 s | ~8k entrada / 1k salida |
 | **Hasta el resumen en el ticket** | **~1–2 min (p95 < 3 min)** | |
 
-Con precios de lista de referencia de USD 3 / 15 por millón de tokens (entrada/salida) para el modelo medio y USD 1 / 5 para el pequeño, el costo de LLM ronda **USD 0,15 por Incidencia**, unos **USD 45/día** a 300 Incidencias/día. *Los precios dependen del modelo elegido y deben verificarse contra la lista vigente de Bedrock.* Prompt caching sobre el system prompt y los contratos de tools lo reduciría. El costo de infraestructura (Aurora Serverless, Lambda, Direct Connect, Guardrails, embeddings) es aparte y está dominado por Direct Connect.
+Con precios de lista de referencia de USD 3 / 15 por millón de tokens (entrada/salida) para el modelo medio y USD 1 / 5 para el pequeño, el costo de LLM ronda **USD 0,16 por Incidencia** (agente ≈ 0,12; resumen ≈ 0,04; extracción ≈ 0,003), unos **USD 49/día** a 300 Incidencias/día. *Los precios dependen del modelo elegido y deben verificarse contra la lista vigente de Bedrock.* Prompt caching sobre el system prompt y los contratos de tools lo reduciría. El costo de infraestructura (Aurora Serverless, Lambda, Direct Connect, Guardrails, embeddings) es aparte y está dominado por Direct Connect.
 
 ## 8.2 Observabilidad
 
@@ -329,10 +329,10 @@ En la carpeta `prototipo/`:
 | `tools.json` | Contratos (JSON Schema) de las 6 tools MCP, todas de solo lectura y con `evidence_id` en la salida. |
 | `resumen.py` | Esquema Pydantic `ResumenTecnico` y el validador determinista (citas, hipótesis, acciones de cambio). |
 | `reglas.py` | Campos obligatorios, urgencia (severidad y Síntoma), prioridad/SLA, ruteo, códigos de escalamiento, derivación y publicación del resumen (valores supuestos). |
-| `casos.json` | 18 casos: normales, Tickets en texto libre, escalamiento, adversariales sobre salidas simuladas (acción inducida, cita alucinada, acción disfrazada, falso positivo) y degradación. |
+| `casos.json` | 20 casos: normales, Tickets en texto libre, escalamiento, entradas fuera de catálogo, adversariales sobre salidas simuladas (acción inducida, cita alucinada, acción disfrazada, falso positivo) y degradación. |
 | `eval_deterministic.py` | Corre los casos; sale con código 1 si alguno falla (gate de CI). |
 | `resultado-evaluacion.txt` | Salida de la última ejecución, para consultarla sin ejecutar nada. |
 
-Ejecución: `uv run --python 3.13 --with pydantic python eval_deterministic.py` → `18/18 casos OK`.
+Ejecución: `uv run --python 3.13 --with pydantic python eval_deterministic.py` → `20/20 casos OK`.
 
 **No implementado**: el loop del agente, el servidor MCP, el enmascarado, la definición ASL de Step Functions, la infraestructura y cualquier llamada a un modelo real.

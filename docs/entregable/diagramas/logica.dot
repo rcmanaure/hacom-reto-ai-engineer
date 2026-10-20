@@ -37,7 +37,7 @@ digraph logica {
     label="IA generativa"; style="rounded"; color="#6b3fa0";
     node [fillcolor="#e6dcf5", color="#6b3fa0"];
     LLME [label="LLM extracción\n(workflow IA)"];
-    AG   [label="Agente de investigación\nloop acotado: ≤8 tools, ≤90 s"];
+    AG   [label="Agente de investigación\nloop acotado: ≤8 llamadas, ≤90 s"];
     LLMR [label="LLM resumen\n(workflow IA)"];
   }
 

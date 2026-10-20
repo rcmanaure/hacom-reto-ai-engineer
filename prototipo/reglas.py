@@ -46,6 +46,8 @@ def campos_faltantes(evento: dict) -> list[str]:
     datos = datos_evento(evento)
     requeridos = CAMPOS_ALERTA if datos.get("tipo") == "alerta" else CAMPOS_TICKET
     faltan = [c for c in requeridos if not datos.get(c)]
+    if datos.get("tipo") == "alerta" and datos.get("severidad") and datos["severidad"] not in URGENCIA_SEVERIDAD:
+        faltan.append("severidad")
     if datos.get("tipo") == "ticket":
         if not (datos.get("equipo_id") or datos.get("servicio_id")):
             faltan.append("equipo_id|servicio_id")

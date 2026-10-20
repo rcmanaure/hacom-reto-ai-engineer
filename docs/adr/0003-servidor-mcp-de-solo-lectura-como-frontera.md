@@ -4,7 +4,7 @@ Las tools del agente se exponen desde un servidor MCP separado, detrás de un AP
 
 ## Opciones consideradas
 
-- **Tools como funciones locales dentro del contenedor del agente**: descartado. El proceso del agente tendría las credenciales de los backends, y el límite de acceso dependería del código de la tool en lugar de un rol separado y auditable.
+- **Tools como funciones locales dentro de la Lambda del agente**: descartado. El proceso del agente tendría las credenciales de los backends, y el límite de acceso dependería del código de la tool en lugar de un rol separado y auditable.
 
 - **Una Lambda de tools con rol propio, sin MCP**: ofrece la misma frontera IAM. Elegimos MCP por el contrato estándar (descubrimiento y esquemas de tools), que permite reutilizar las mismas tools desde otros clientes, como un asistente para el Operador NOC. Sin un segundo consumidor previsto, la Lambda simple sería igual de válida.
 

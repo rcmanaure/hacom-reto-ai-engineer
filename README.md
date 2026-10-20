@@ -15,7 +15,7 @@ Todo se puede ver desde el navegador, haciendo clic en los enlaces. Orden sugeri
 | 1 | [**Documento técnico (PDF)**](docs/entregable/HACOM-Reto-AI-Engineer.pdf) | La propuesta completa: 20 páginas con índice. Empieza por el resumen ejecutivo (pág. 2). | 15–25 min |
 | 2 | **Video de presentación** | Resumen de menos de 4 minutos que recorre las decisiones y los diagramas. Se entrega por el canal indicado por HACOM. | 4 min |
 | 3 | [Diagrama lógico](docs/entregable/diagramas/logica.png) · [Diagrama de estados](docs/entregable/diagramas/estados.png) · [Diagrama físico](docs/entregable/diagramas/fisica.png) | Los mismos diagramas del documento, en alta resolución para hacer zoom. | 5 min |
-| 4 | [Resultado de las pruebas del prototipo](prototipo/resultado-evaluacion.txt) | Los 18 casos de prueba y su resultado (18/18 OK), sin necesidad de ejecutar nada. | 2 min |
+| 4 | [Resultado de las pruebas del prototipo](prototipo/resultado-evaluacion.txt) | Los 20 casos de prueba y su resultado (20/20 OK), sin necesidad de ejecutar nada. | 2 min |
 
 Si una palabra no es clara (por ejemplo *Incidencia*, *Síntoma* u *Operador NOC*), está definida en el [glosario](GLOSSARY.md).
 
@@ -60,14 +60,14 @@ Si una palabra no es clara (por ejemplo *Incidencia*, *Síntoma* u *Operador NOC
     ├── tools.json                contratos (JSON Schema) de las 6 tools MCP de solo lectura
     ├── resumen.py                esquema de salida del resumen y validador determinista
     ├── reglas.py                 urgencia, prioridad/SLA, ruteo, escalamiento, derivación, publicación
-    ├── casos.json                18 casos de evaluación
+    ├── casos.json                20 casos de evaluación
     ├── eval_deterministic.py     corre los casos; código de salida 1 si alguno falla
     └── resultado-evaluacion.txt  última salida de la evaluación
 ```
 
 ### Tesis técnica
 
-Un workflow determinista (Step Functions) orquesta las 8 actividades. Un único agente (loop propio sobre la Bedrock Converse API, en Lambda, ≤8 tools y ≤90 s) investiga causas con tools MCP de solo lectura. Dos llamadas LLM puntuales extraen campos de Tickets y redactan el resumen. Urgencia, prioridad, SLA, ruteo, escalamiento y escritura quedan fuera del LLM.
+Un workflow determinista (Step Functions) orquesta las 8 actividades. Un único agente (loop propio sobre la Bedrock Converse API, en Lambda, ≤8 llamadas a tools y ≤90 s) investiga causas con tools MCP de solo lectura. Dos llamadas LLM puntuales extraen campos de Tickets y redactan el resumen. Urgencia, prioridad, SLA, ruteo, escalamiento y escritura quedan fuera del LLM.
 
 Orden de ejecución: recibir → extraer y validar → enriquecer → priorizar → **derivar por regla** → investigar → resumir → validar → nota interna en el ticket. Solo E1 (faltan datos) y E3 (ruteo ambiguo) bloquean la derivación. Cualquier error del validador retiene el resumen.
 
@@ -92,7 +92,7 @@ cd prototipo
 uv run --python 3.13 --with pydantic python eval_deterministic.py
 ```
 
-Corre 18 casos: normales, Tickets en texto libre, escalamiento, acción de cambio inducida, cita alucinada, acción disfrazada, falso positivo e IA caída. En cada uno comprueba prioridad, SLA, equipo, códigos de escalamiento, si se deriva y si el resumen se publica o se retiene. Las salidas del modelo en `casos.json` son fijas: se prueba el validador y las reglas, no la calidad de un modelo.
+Corre 20 casos: normales, Tickets en texto libre, escalamiento, entradas fuera de catálogo, acción de cambio inducida, cita alucinada, acción disfrazada, falso positivo e IA caída. En cada uno comprueba prioridad, SLA, equipo, códigos de escalamiento, si se deriva y si el resumen se publica o se retiene. Las salidas del modelo en `casos.json` son fijas: se prueba el validador y las reglas, no la calidad de un modelo.
 
 Si cambias reglas o casos, actualiza el resultado versionado:
 
@@ -119,4 +119,4 @@ docs\entregable\exportar.ps1
 
 | Implementado y probado | Solo diseño |
 |---|---|
-| Reglas deterministas, validador de salida, contratos de tools y 18 casos de evaluación | Loop del agente, servidor MCP, enmascarado de PII, definición de Step Functions, infraestructura AWS y cualquier llamada a un modelo real |
+| Reglas deterministas, validador de salida, contratos de tools y 20 casos de evaluación | Loop del agente, servidor MCP, enmascarado de PII, definición de Step Functions, infraestructura AWS y cualquier llamada a un modelo real |

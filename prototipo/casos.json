@@ -173,5 +173,23 @@
       "contexto": null, "trace_ids": [], "salida_modelo": null
     },
     "esperado": {"prioridad": null, "sla_min": null, "equipo": null, "escalamiento": ["E1"], "errores_resumen": [], "requiere_operador": true, "deriva": false, "publica_resumen": false}
+  },
+  {
+    "id": "C19", "descripcion": "Alerta con severidad fuera de la tabla ('info'): E1, no se inventa una urgencia ni falla el workflow",
+    "entrada": {
+      "evento": {"tipo": "alerta", "id": "A-119", "origen": "nms", "equipo_id": "OLT-ARE-19", "severidad": "info", "timestamp": "2026-10-20T20:00:00Z"},
+      "contexto": null, "trace_ids": [], "salida_modelo": null
+    },
+    "esperado": {"prioridad": null, "sla_min": null, "equipo": null, "escalamiento": ["E1"], "errores_resumen": [], "requiere_operador": true, "deriva": false, "publica_resumen": false}
+  },
+  {
+    "id": "C20", "descripcion": "'Habilitar el puerto' presentado como diagnóstico: el validador lo detecta como cambio y retiene el resumen (E6)",
+    "entrada": {
+      "evento": {"tipo": "alerta", "id": "A-120", "origen": "nms", "equipo_id": "OLT-ARE-20", "severidad": "minor", "timestamp": "2026-10-20T20:30:00Z"},
+      "contexto": {"clientes_afectados": 3, "tier": "bronce", "tipos_equipo": ["olt"]},
+      "trace_ids": ["ev-dev-20"],
+      "salida_modelo": {"incidencia_id": "INC-120", "hechos": [{"texto": "Puerto GPON 1/1/5 administrativamente deshabilitado", "evidencias": ["ev-dev-20"]}], "hipotesis": [], "evidencias": [{"evidence_id": "ev-dev-20", "descripcion": "get_device_status OLT-ARE-20"}], "acciones_sugeridas": [{"texto": "Habilitar el puerto GPON 1/1/5", "tipo": "diagnostico", "requiere_autorizacion": false}], "equipo_sugerido": "Acceso FTTH", "investigacion_completa": true}
+    },
+    "esperado": {"prioridad": "P4", "sla_min": 480, "equipo": "Acceso FTTH", "escalamiento": ["E6"], "errores_resumen": ["ACCION_MAL_CLASIFICADA"], "requiere_operador": true, "deriva": true, "publica_resumen": false}
   }
 ]

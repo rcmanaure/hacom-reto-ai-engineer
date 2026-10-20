@@ -11,23 +11,24 @@ from diagrams.aws.ml import Bedrock
 from diagrams.aws.network import APIGateway, DirectConnect, Endpoint, SiteToSiteVpn
 from diagrams.aws.security import KMS, SecretsManager, SingleSignOn
 from diagrams.aws.storage import S3
+from diagrams.generic.compute import Rack
+from diagrams.generic.database import SQL
 from diagrams.generic.storage import Storage
 from diagrams.onprem.client import Users
-from diagrams.onprem.database import PostgreSQL
-from diagrams.onprem.monitoring import Zabbix
-from diagrams.onprem.vcs import Git
 
-graph_attr = {"fontsize": "14", "pad": "0.4", "nodesep": "0.45", "ranksep": "0.8", "splines": "spline"}
+graph_attr = {"fontsize": "14", "pad": "0.4", "nodesep": "0.6", "ranksep": "0.8", "splines": "spline"}
 
-with Diagram("Arquitectura física", filename="fisica", outformat="png",
+# Sin título en la imagen: el documento ya pone la leyenda de la figura.
+with Diagram("", filename="fisica", outformat="png",
              direction="TB", graph_attr=graph_attr, show=False):
 
+    # Iconos genéricos: el diseño no supone productos concretos on-prem.
     with Cluster("Operador · on-prem"):
-        mon = Zabbix("Monitoreo (NMS)")
+        mon = Rack("Monitoreo (NMS)")
         tickets = Storage("Plataforma de tickets")
         catalogo = Storage("Catálogo clientes/servicios")
-        bd = PostgreSQL("BD relacional\ninventario/topología")
-        repos = Git("Repos documentación")
+        bd = SQL("BD relacional\ninventario/topología")
+        repos = Storage("Repos documentación")
         noc = Users("Operador NOC")
 
     with Cluster("Enlace privado"):
@@ -41,9 +42,9 @@ with Diagram("Arquitectura física", filename="fisica", outformat="png",
             pipes = EventbridgePipes("EventBridge Pipes")
             sfn = StepFunctions("Step Functions\nStandard")
             with Cluster("Pasos deterministas"):
-                lam = Lambda("Lambdas: extraer, validar,\ncorrelacionar, enriquecer,\nreglas, enmascarar PII")
-                writer = Lambda("ticket-writer\n(único rol con escritura)")
-            agente = Lambda("Agente\n≤8 tools, ≤90 s")
+                lam = Lambda("Pasos del\nworkflow")
+                writer = Lambda("ticket-writer\n(único con\nescritura)")
+            agente = Lambda("Agente\n≤8 llamadas,\n≤90 s")
             apigw_mcp = APIGateway("API Gateway privado\nMCP (IAM auth)")
             mcp = Lambda("Servidor MCP\nsolo lectura")
             aurora = Aurora("Aurora PostgreSQL\nServerless v2\nestado + auditoría + pgvector")
