@@ -1,2 +1,15 @@
+# Solo se versiona el alcance del reto: todo lo demás en la raíz queda fuera.
+/*
+!/.gitignore
+!/README.md
+!/GLOSSARY.md
+!/docs/
+!/prototipo/
+
+# Generados o temporales dentro del alcance
 __pycache__/
 ~$*
+*.log
+.DS_Store
+Thumbs.db
+desktop.ini
