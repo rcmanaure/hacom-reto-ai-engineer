@@ -23,7 +23,7 @@ Si una palabra no es clara (por ejemplo *Incidencia*, *Síntoma* u *Operador NOC
 
 | Lo que pide el reto | Dónde está |
 |---|---|
-| Matriz de decisiones de automatización | Documento §3 (pág. 3) |
+| Matriz de decisiones de automatización | Documento §3 (págs. 3–5) |
 | Arquitectura conceptual / lógica | Documento §4 (pág. 6) · [diagrama lógico](docs/entregable/diagramas/logica.png) · [diagrama de estados](docs/entregable/diagramas/estados.png) |
 | Arquitectura física y su justificación | Documento §5 (pág. 11) · [diagrama físico](docs/entregable/diagramas/fisica.png) |
 | Riesgos y controles de seguridad | Documento §6 (pág. 14) |
@@ -31,6 +31,15 @@ Si una palabra no es clara (por ejemplo *Incidencia*, *Síntoma* u *Operador NOC
 | Supuestos, limitaciones y decisiones técnicas | Documento §2 (pág. 3), §8 (pág. 17), §9 (pág. 18) · [decisiones de arquitectura](docs/adr/) |
 | Video de presentación | Se entrega aparte |
 | Prototipo (opcional) | [`prototipo/`](prototipo/) · Documento, Anexo A (pág. 19) |
+
+### Cómo responde al criterio central de evaluación
+
+| Criterio | Cómo se cubre | Dónde verlo |
+|---|---|---|
+| **Calidad del razonamiento técnico** | Todas las decisiones parten de un principio explícito: reglas donde hay reglas e IA solo donde aporta. Los supuestos (S1–S8) y los riesgos residuales están declarados, y se separa lo implementado de lo que es solo diseño. | Documento §1, §2 y §8.5 |
+| **Selección del tipo de automatización por actividad** | Una matriz de las 8 actividades con el tipo elegido, por qué y la alternativa descartada (LLM, agente o ML clásico), y una tabla que clasifica cada actividad. Resultado: arquitectura híbrida con 2 workflows IA y 1 agente IA. | Documento §3 (págs. 3–5) |
+| **Diseño seguro y evaluable** | La IA no tiene permisos de escritura (lo impone IAM, no el prompt), los datos personales se seudonimizan y un validador retiene cualquier resumen con errores. Cada control dice cómo se verifica. La evaluación tiene 3 capas con métricas y umbrales, y el prototipo trae 20 casos ejecutables. | Documento §6 (pág. 14) y §7 (pág. 15) · [prototipo](prototipo/) |
+| **Capacidad de justificar las decisiones** | Cada tabla incluye las alternativas descartadas y por qué. Las decisiones difíciles de revertir tienen un ADR, y el documento responde de antemano las preguntas que haría un evaluador. | Documento §5, §9 y §10 (pág. 19) · [ADRs](docs/adr/) |
 
 ### La propuesta en 30 segundos
 

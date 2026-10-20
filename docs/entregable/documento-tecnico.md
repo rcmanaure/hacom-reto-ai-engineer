@@ -9,7 +9,7 @@ toc-title: "Índice"
 
 # 1. Resumen ejecutivo
 
-La propuesta es un **workflow determinista** que orquesta las 8 actividades del proceso. Solo hay un **agente IA**, limitado a la investigación de causas probables, y dos **llamadas LLM puntuales** dentro del workflow: una para extraer campos de Tickets en texto libre y otra para redactar el resumen técnico. Todo lo que tiene reglas conocidas queda fuera del LLM: validación, correlación, urgencia, prioridad, SLA, ruteo, escritura en el ticket y escalamiento.
+La propuesta es una **arquitectura híbrida**: un **workflow determinista** que orquesta las 8 actividades del proceso. Solo hay un **agente IA**, limitado a la investigación de causas probables, y dos **llamadas LLM puntuales** dentro del workflow: una para extraer campos de Tickets en texto libre y otra para redactar el resumen técnico. Todo lo que tiene reglas conocidas queda fuera del LLM: validación, correlación, urgencia, prioridad, SLA, ruteo, escritura en el ticket y escalamiento.
 
 La garantía de que *la IA no ejecuta cambios sobre la red* no depende del prompt, sino de la infraestructura:
 
@@ -57,15 +57,28 @@ La solución corre en **AWS**, en topología híbrida: los sistemas del operador
 | # | Actividad | Automatización elegida | Por qué | Alternativa descartada |
 |-|----|-------|-------|------|
 | 1 | Recibir Alertas y Tickets | **Integración determinista**: webhook → cola → inicio del workflow | Es transporte de datos; requiere durabilidad y reintentos, no razonamiento. | LLM para "leer" eventos: costo y latencia sin aportar nada. |
-| 2 | Validar campos, deduplicar y correlacionar | **Workflow IA** solo para Tickets en texto libre: extrae equipo/servicio, ubicación y Síntoma con salida estructurada. Luego, **reglas**: campos obligatorios, Síntoma dentro del catálogo, correlación por equipo, ventana de tiempo y topología padre-hijo. | La extracción va primero porque la validación y el enriquecimiento necesitan esos campos. La deduplicación debe ser reproducible y auditable; la topología explica la mayor parte de la correlación (una caída upstream explica las Alertas downstream). | LLM para decidir si dos Alertas son "la misma": no determinista y difícil de auditar. Se pueden usar embeddings como señal secundaria en una fase 2, nunca como decisión. |
+| 2 | Validar campos, deduplicar y correlacionar | **Workflow IA** solo para Tickets en texto libre: extrae equipo/servicio, ubicación y Síntoma con salida estructurada. Luego, **reglas**: campos obligatorios, Síntoma dentro del catálogo, correlación por equipo, ventana de tiempo y topología padre-hijo. | La extracción va primero porque la validación y el enriquecimiento necesitan esos campos. La deduplicación debe ser reproducible y auditable; la topología explica la mayor parte de la correlación (una caída upstream explica las Alertas downstream). | LLM para decidir si dos Alertas son "la misma": no determinista y difícil de auditar. ML clásico (clustering de Alertas): necesita histórico etiquetado y no supera a la topología, que es explícita; candidato en fase 2, junto con embeddings, solo como señal secundaria. |
 | 3 | Consultar cliente, servicio, ubicación, equipo y estado | **Consultas deterministas** (API/SQL) | Son lookups por clave; la respuesta correcta es única. | Que el agente lo consulte: lento, caro y no garantiza completitud. |
 | 4 | Clasificar y priorizar, SLA | **Motor de reglas**: urgencia por severidad (Alertas) o por tabla Síntoma → urgencia (Tickets); matriz impacto × urgencia; tabla de SLA | El SLA es contractual y debe ser exacto y explicable. La IA solo nombra el Síntoma; la urgencia la fija la tabla, y un Síntoma fuera del catálogo genera E1. | LLM decide la prioridad o la urgencia: inaceptable para SLA y auditoría. |
 | 5 | Investigar causas probables | **Agente IA** (loop acotado con RAG sobre procedimientos e histórico + tools de solo lectura) | La ruta de investigación depende de lo que se encuentra: si el equipo está bien se mira upstream, si hay un patrón histórico se busca su procedimiento. No es un flujo fijo. | Workflow IA de un solo paso (RAG fijo): no puede seguir pistas. Multi-agente: más costo y fallo sin más capacidad. |
-| 6 | Identificar el equipo y derivar | **Tabla de ruteo** (tipo de equipo/dominio → Equipo resolutor), ejecutada justo después de priorizar; si es unívoca, se deriva de inmediato. Si es ambigua, se espera la sugerencia del agente y decide el Operador NOC. | El ruteo erróneo es el principal costo operativo (reasignaciones); la regla es explicable y no necesita esperar a la IA. | LLM decide el equipo: sin garantía. Se acepta solo como *sugerencia* con decisión humana. |
+| 6 | Identificar el equipo y derivar | **Tabla de ruteo** (tipo de equipo/dominio → Equipo resolutor), ejecutada justo después de priorizar; si es unívoca, se deriva de inmediato. Si es ambigua, se espera la sugerencia del agente y decide el Operador NOC. | El ruteo erróneo es el principal costo operativo (reasignaciones); la regla es explicable y no necesita esperar a la IA. | LLM decide el equipo: sin garantía. Se acepta solo como *sugerencia* con decisión humana. ML clásico (clasificador entrenado con el histórico de asignaciones): opaco frente a una tabla y necesita datos etiquetados; candidato en fase 2 si la tasa de reasignación (§7) muestra que las reglas no alcanzan. |
 | 7 | Resumen técnico | **Workflow IA** (una llamada con salida estructurada: hechos, hipótesis, evidencias con cita, acciones sugeridas) | Redactar y sintetizar es la fortaleza del LLM, y la estructura permite validarlo de forma determinista. | Plantilla fija: no sintetiza la investigación. Agente: innecesario, no hay decisiones que tomar. |
 | 8 | Actualizar el ticket y escalar | **Determinista** (escritura vía API por el workflow; reglas de escalamiento E1–E7) + **humano en el loop** | Escribir en sistemas del operador y decidir el escalamiento son acciones con impacto: deben ser predecibles. | Que el agente escriba directamente: viola el requisito de no actuar sin controles. |
 
-**Resultado: 1 agente, 2 llamadas LLM puntuales y el resto determinista.**
+## Clasificación por actividad
+
+| # | Actividad | Tipo de automatización | IA generativa |
+|-|-------|----------|--------|
+| 1 | Recibir | Integración por eventos | No |
+| 2 | Validar, deduplicar y correlacionar | Reglas + extracción con LLM | **Workflow IA** (solo Tickets en texto libre) |
+| 3 | Consultar contexto | Consultas API/SQL | No |
+| 4 | Clasificar y priorizar | Motor de reglas | No |
+| 5 | Investigar causas | Agente con tools de solo lectura y RAG | **Agente IA** |
+| 6 | Identificar equipo y derivar | Tabla de ruteo + decisión humana si es ambiguo | No (la sugerencia del agente solo informa al humano) |
+| 7 | Resumen técnico | Generación con salida estructurada + validador determinista | **Workflow IA** |
+| 8 | Actualizar y escalar | Escritura vía API + reglas + humano en el loop | No |
+
+**Resultado: arquitectura híbrida.** Un workflow determinista orquesta las 8 actividades y controla todo lo que tiene impacto; dentro de él viven dos workflows IA (extracción y resumen) y un único agente IA (investigación). Es decir, 1 agente, 2 llamadas LLM puntuales y el resto determinista.
 
 ## Señales de escalamiento al Operador NOC
 
