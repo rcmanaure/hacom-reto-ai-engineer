@@ -44,10 +44,10 @@ with Diagram("", filename="fisica", outformat="png",
             with Cluster("Pasos deterministas"):
                 lam = Lambda("Pasos del\nworkflow")
                 writer = Lambda("ticket-writer\n(único con\nescritura)")
-            agente = Lambda("Agente\n≤8 llamadas,\n≤90 s")
+            agente = Lambda("Agente\n≤8 llamadas, ≤90 s\nconcurrencia limitada")
             apigw_mcp = APIGateway("API Gateway privado\nMCP (IAM auth)")
             mcp = Lambda("Servidor MCP\nsolo lectura")
-            aurora = Aurora("Aurora PostgreSQL\nServerless v2\nestado + auditoría + pgvector")
+            aurora = Aurora("Aurora PostgreSQL\nServerless v2 + RDS Proxy\nestado + auditoría + pgvector")
             vpce = Endpoint("VPC endpoints\n(lista en §5)")
 
         with Cluster("Servicios gestionados"):

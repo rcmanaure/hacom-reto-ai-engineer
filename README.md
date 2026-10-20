@@ -28,9 +28,9 @@ Si una palabra no es clara (por ejemplo *Incidencia*, *Síntoma* u *Operador NOC
 | Arquitectura física y su justificación | Documento §5 (pág. 11) · [diagrama físico](docs/entregable/diagramas/fisica.png) |
 | Riesgos y controles de seguridad | Documento §6 (pág. 14) |
 | Estrategia de evaluación de la IA generativa | Documento §7 (pág. 15) · [prototipo](prototipo/) |
-| Supuestos, limitaciones y decisiones técnicas | Documento §2 (pág. 3), §8 (pág. 17), §9 (pág. 18) · [decisiones de arquitectura](docs/adr/) |
+| Supuestos, limitaciones y decisiones técnicas | Documento §2 (pág. 3), §8 (pág. 17), §9 (pág. 19) · [decisiones de arquitectura](docs/adr/) |
 | Video de presentación | Se entrega aparte |
-| Prototipo (opcional) | [`prototipo/`](prototipo/) · Documento, Anexo A (pág. 19) |
+| Prototipo (opcional) | [`prototipo/`](prototipo/) · Documento, Anexo A (pág. 20) |
 
 ### Cómo responde al criterio central de evaluación
 

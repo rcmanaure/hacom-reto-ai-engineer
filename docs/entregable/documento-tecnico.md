@@ -139,6 +139,7 @@ El diagrama de estados completo está en la página siguiente. Ante cada fallo, 
 | Agente excede sus límites | Devuelve lo hallado marcado como incompleto (E5). |
 | Salida inválida | 1 reintento del resumen con los errores del validador como feedback. Si vuelve a fallar, el resumen se retiene (E2 o E6). La Incidencia ya fue derivada por regla, así que el fallo no retrasa la atención. |
 | Alertas simultáneas del mismo equipo | La correlación toma un bloqueo por equipo en Aurora (`pg_advisory_xact_lock`), así que dos ejecuciones concurrentes no crean Incidencias duplicadas. Al adjuntar, se recalcula la prioridad de la Incidencia existente. |
+| Tormenta de eventos (por ejemplo, un corte masivo) | La correlación agrupa las Alertas de una misma causa en una sola Incidencia, así que el agente corre una vez y no por cada Alerta. Si aun así las Incidencias nuevas por minuto o el uso de la cuota de Bedrock superan un umbral (configurado en AppConfig), se activa el **modo tormenta**: el agente solo investiga P1 y P2, y el resto se deriva por reglas, marcado con E7, y queda en cola para un análisis diferido si sigue abierto. La derivación no se retrasa en ningún caso. |
 | Operador NOC no responde | Timeout ligado al SLA de la prioridad. Al vencer, escala al supervisor de turno. |
 | Mensaje malformado | DLQ, más una alarma. |
 
@@ -174,6 +175,7 @@ El diagrama de estados completo está en la página siguiente. Ante cada fallo, 
 | Identidad | Humanos: aprueban con su identidad en la plataforma de tickets (federada al IdP del operador). **IAM Identity Center** federado al IdP solo para administración de AWS. Servicios: un rol IAM por componente. | SSO corporativo; mínimo privilegio por servicio. | Usuarios IAM locales. |
 | Secretos y cifrado | **Secrets Manager** (rotación) + **KMS** (claves propias) | Credenciales de conectores fuera del código; cifrado en reposo. | — |
 | Red | VPC privada sin salida a Internet. **VPC endpoints**: `bedrock-runtime`, `bedrock-agent-runtime` (Retrieve), `execute-api`, `states`, `sqs`, `secretsmanager`, `kms`, `logs`, `monitoring`, `sts`, `appconfigdata` y S3 (gateway). Security groups: el agente solo puede salir hacia el endpoint del MCP y el de Bedrock. | Ningún tráfico sale a Internet; el agente no tiene otra ruta de red. | NAT Gateway: abre una ruta de exfiltración. |
+| Capacidad ante picos | **Concurrencia reservada** del agente, dimensionada a la cuota de Bedrock; **RDS Proxy** entre las Lambdas y Aurora; concurrencia limitada en `ticket-writer` y en los conectores según el límite de solicitudes de cada sistema del operador; caché corta en el MCP para datos de inventario y topología. Si el volumen alto es sostenido, inferencia entre regiones o capacidad reservada de Bedrock (provisioned throughput). | El cuello de botella ante miles de eventos no es la ingesta, sino la cuota del modelo, las conexiones a la base de datos y las APIs on-prem. Con estos límites, el exceso se encola y se reintenta en lugar de fallar. | Escalar sin límites: agota las cuotas de Bedrock y satura los sistemas del operador. |
 | Observabilidad | **CloudWatch** (métricas, logs, alarmas), **CloudTrail** (API), Bedrock invocation logging, historial de Step Functions | Nativos y suficientes. | X-Ray, Langfuse o similar: mejora futura si hace falta análisis de trazas o de calidad de prompts. |
 
 **Región.** La región de referencia es us-east-1, por disponibilidad de modelos en Bedrock. Si el operador exige residencia en Latinoamérica, hay que validar antes de producción la disponibilidad de los modelos y de Knowledge Bases en sa-east-1 o mx-central-1, y si requieren perfil de inferencia geográfico (ver S1 y §8.6).
@@ -269,13 +271,13 @@ Las correcciones del Operador NOC alimentan el golden set (con revisión), lo qu
 | Resumen (modelo medio) | 5–10 s | ~8k entrada / 1k salida |
 | **Hasta el resumen en el ticket** | **~1–2 min (p95 < 3 min)** | |
 
-Con precios de lista de referencia de USD 3 / 15 por millón de tokens (entrada/salida) para el modelo medio y USD 1 / 5 para el pequeño, el costo de LLM ronda **USD 0,16 por Incidencia** (agente ≈ 0,12; resumen ≈ 0,04; extracción ≈ 0,003), unos **USD 49/día** a 300 Incidencias/día. *Los precios dependen del modelo elegido y deben verificarse contra la lista vigente de Bedrock.* Prompt caching sobre el system prompt y los contratos de tools lo reduciría. El costo de infraestructura (Aurora Serverless, Lambda, Direct Connect, Guardrails, embeddings) es aparte y está dominado por Direct Connect.
+Con precios de lista de referencia de USD 3 / 15 por millón de tokens (entrada/salida) para el modelo medio y USD 1 / 5 para el pequeño, el costo de LLM ronda **USD 0,16 por Incidencia** (agente ≈ 0,12; resumen ≈ 0,04; extracción ≈ 0,003), unos **USD 49/día** a 300 Incidencias/día. El costo crece de forma lineal con las Incidencias, no con las Alertas: un pico sostenido de 10× (3.000 Incidencias/día) costaría unos USD 480/día, y el modo tormenta (§4.3) lo limita. *Los precios dependen del modelo elegido y deben verificarse contra la lista vigente de Bedrock.* Prompt caching sobre el system prompt y los contratos de tools lo reduciría. El costo de infraestructura (Aurora Serverless, Lambda, Direct Connect, Guardrails, embeddings) es aparte y está dominado por Direct Connect.
 
 ## 8.2 Observabilidad
 
 - **Por Incidencia**: historial de Step Functions (90 días) + tabla de auditoría permanente (quién, qué, con qué evidencia, versión de prompt y modelo).
 - **Por invocación LLM**: Bedrock invocation logging (S3 con Object Lock) + métricas de tokens y latencia.
-- **Alarmas**: DLQ no vacía, tasa E7 > 0, costo por hora, p95 > 3 min, aumento de E2.
+- **Alarmas**: DLQ no vacía, tasa E7 > 0, costo por hora, p95 > 3 min, aumento de E2, uso de la cuota de Bedrock > 80 % y modo tormenta activo.
 
 ## 8.3 Resiliencia
 
@@ -304,7 +306,7 @@ La IA es un acelerador, no una dependencia crítica: con Bedrock caído la opera
 3. Inventariar las APIs y webhooks reales de los sistemas on-prem y la plataforma de tickets (S2).
 4. Construir y etiquetar el golden set con el equipo NOC; acordar la taxonomía de causas y los umbrales.
 5. Definir con negocio la matriz de prioridad, la tabla Síntoma → urgencia, el SLA y la tabla de ruteo reales (las del prototipo son supuestos).
-6. Prueba de carga con picos 10× y prueba de caos de Bedrock y de los conectores.
+6. Prueba de carga con picos 10× (incluido el modo tormenta), verificación de las cuotas de Bedrock de la cuenta y región, y prueba de caos de Bedrock y de los conectores.
 7. Pentest y red-team de prompt injection antes de la fase asistida.
 
 # 9. Decisiones técnicas principales
@@ -315,7 +317,7 @@ La IA es un acelerador, no una dependencia crítica: con Bedrock caído la opera
 | 0002 | Loop de agente propio sobre la Bedrock Converse API, en Lambda y con límites duros (no Bedrock Agents ni Fargate). |
 | 0003 | Servidor MCP de solo lectura como frontera de seguridad; la escritura solo la hace el workflow. |
 
-Otras decisiones: reglas fuera del LLM (urgencia, prioridad, SLA, ruteo y escalamiento); extracción antes de la validación; escalamiento por señales verificables en lugar de "confianza" del modelo; ruteo y derivación antes de la investigación, sin esperar a la IA ni al humano salvo E1/E3; retención del resumen ante cualquier error del validador; aprobación en la plataforma de tickets; degradación sin IA; despliegue sombra → asistido.
+Otras decisiones: reglas fuera del LLM (urgencia, prioridad, SLA, ruteo y escalamiento); extracción antes de la validación; escalamiento por señales verificables en lugar de "confianza" del modelo; ruteo y derivación antes de la investigación, sin esperar a la IA ni al humano salvo E1/E3; retención del resumen ante cualquier error del validador; aprobación en la plataforma de tickets; degradación sin IA; modo tormenta que reserva el agente para P1 y P2 ante picos; despliegue sombra → asistido.
 
 # 10. Preguntas anticipadas
 
@@ -330,6 +332,8 @@ Otras decisiones: reglas fuera del LLM (urgencia, prioridad, SLA, ruteo y escala
 **¿Quién decide qué es la causa "correcta" o un documento "relevante"?** Ingenieros NOC senior, sobre una taxonomía controlada de causas, con doble etiquetado en el 20% de los casos para medir concordancia.
 
 **¿Cómo se usa la `probabilidad` alta/media/baja de las hipótesis?** Solo para ordenarlas en el resumen; no dispara ninguna decisión. Se mide su calibración en el golden set y, si no es monótona, se elimina.
+
+**¿Y si llegan miles de Alertas o Tickets?** La ingesta (SQS + DLQ) los absorbe y la correlación los agrupa en Incidencias, así que la IA trabaja por Incidencia y no por Alerta. Lo primero que se satura es la cuota de Bedrock, no el flujo: se limita la concurrencia del agente y, en un pico, el modo tormenta reserva el análisis IA para P1 y P2. Como la derivación no depende de la IA, cada Incidencia sigue llegando a su equipo en segundos. Lo que se pierde ante la saturación es análisis, no atención. Se valida con la prueba de carga de §8.6.
 
 **¿Cómo se evalúa la correlación si es determinista?** Con precisión y recall por pares contra agrupaciones etiquetadas del histórico. Es crítica porque un error ahí duplica o mezcla Incidencias antes de que intervenga la IA.
 
